@@ -1,0 +1,10 @@
+{
+    "name": "crescendo/http",
+    "repositories": [],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Crescendo\\HTTP\\": "src"
+        }
+    }
+}
