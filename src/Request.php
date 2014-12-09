@@ -29,7 +29,7 @@ interface Request
     
     public function setParameter($method, $parameter, $value);
     
-    public function unsetParameter($method, $parameter);
+    public function removeParameter($method, $parameter);
     
     public function hasParameter($method, $parameter);
     
@@ -41,7 +41,7 @@ interface Request
     
     public function setFile($name, $file);
     
-    public function unsetFile($name);
+    public function removeFile($name);
     
     public function hasFile($name);
     
@@ -53,7 +53,7 @@ interface Request
     
     public function setHeader($header, $value);
     
-    public function unsetHeader($header);
+    public function removeHeader($header);
     
     public function hasHeader($header);
     
@@ -65,7 +65,7 @@ interface Request
     
     public function setCookie($name, $cookie);
     
-    public function unsetCookie($name);
+    public function removeCookie($name);
     
     public function hasCookie($name);
     

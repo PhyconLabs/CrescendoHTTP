@@ -13,9 +13,13 @@ class Applet extends \Crescendo\Applet
         }
         
         if (!$container->isBound("Crescendo\\HTTP\\CurrentRequest")) {
-            $container->bindSingleton("Crescendo\\HTTP\\CurrentRequest", function() {
-                return Request\Request::createFromCurrent();
+            $container->bindSingleton("Crescendo\\HTTP\\CurrentRequest", function() use ($container) {
+                return $container->make("Crescendo\\HTTP\\Request");
             });
+        }
+        
+        if (!$container->isBound("Crescendo\\HTTP\\URL")) {
+            $container->bind("Crescendo\\HTTP\\URL", "Crescendo\\HTTP\\Request\\URL");
         }
         
         return parent::onRegister();
