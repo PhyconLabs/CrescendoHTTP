@@ -3,6 +3,8 @@ namespace Crescendo\HTTP;
 
 interface URL
 {
+    public function __construct(array $parts = []);
+    
     public function getScheme();
     
     public function setScheme($scheme);

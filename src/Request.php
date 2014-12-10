@@ -3,6 +3,8 @@ namespace Crescendo\HTTP;
 
 interface Request
 {
+    public function __construct(array $parts = []);
+    
     public function getMethod();
     
     public function setMethod($method);

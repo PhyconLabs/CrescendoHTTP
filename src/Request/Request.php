@@ -10,6 +10,8 @@ class Request implements \Crescendo\HTTP\Request
     const METHOD_HEAD = "HEAD";
     const METHOD_OPTIONS = "OPTIONS";
     
+    const PARAMETERS_JSON = "JSON";
+    
     protected $method;
     protected $url;
     protected $parameters;
@@ -35,10 +37,23 @@ class Request implements \Crescendo\HTTP\Request
             $parts["headers"] = $this->getCurrentHeaders();
         }
         
+        if (!isset($parts["parameters"])) {
+            $parts["parameters"] = $this->getCurrentParameters();
+        }
+        
+        if (!isset($parts["isAjax"])) {
+            $parts["isAjax"] = $this->getCurrentIsAjax();
+        }
+        
         $this
             ->setMethod($parts["method"])
             ->setUrl($parts["url"])
-            ->setHeaders($parts["headers"]);
+            ->setHeaders($parts["headers"])
+            ->setIsAjax($parts["isAjax"]);
+        
+        foreach ($parts["parameters"] as $method => $parameters) {
+            $this->setParameters($method, $parameters);
+        }
     }
     
     public function __get($property)
@@ -91,18 +106,44 @@ class Request implements \Crescendo\HTTP\Request
                 "Property `{$class}::\${$property}` isn't writable."
             );
         }
-        
-        return $this;
     }
     
     public function __unset($property)
     {
-        //
+        if ($property === "parameters") {
+            $this->setParameters($this->getMethod(), []);
+        } elseif ($property === "files") {
+            $this->setFiles([]);
+        } elseif ($property === "headers") {
+            $this->setHeaders([]);
+        } elseif ($property === "cookies") {
+            $this->setCookies([]);
+        } elseif (strlen($property) > 10 && substr($property, -10) === "Parameters") {
+            $method = substr($property, 0, -10);
+            $method = $this->normalizeMethod($method);
+            
+            $this->setParameters($method, []);
+        } else {
+            $class = get_class($this);
+            
+            throw new Exceptions\UnsupportedPropertyException(
+                "Property `{$class}::\${$property}` isn't unsettable."
+            );
+        }
     }
     
     public function __isset($property)
     {
-        //
+        if (in_array($property, [ "isAjax", "method", "parameters", "files", "headers", "cookies" ])) {
+            return true;
+        } elseif (strlen($property) > 10 && substr($property, -10) === "Parameters") {
+            $method = substr($property, 0, -10);
+            $method = $this->normalizeMethod($method);
+            
+            return isset($this->parameters[$method]);
+        } else {
+            return false;
+        }
     }
     
     public function getMethod()
@@ -352,7 +393,41 @@ class Request implements \Crescendo\HTTP\Request
     
     protected function getCurrentParameters()
     {
-        //
+        $parameters = [];
+        $contentType = isset($_SERVER["HTTP_CONTENT_TYPE"]) ? $_SERVER["HTTP_CONTENT_TYPE"] : "";
+        $method = isset($_SERVER["REQUEST_METHOD"]) ? $_SERVER["REQUEST_METHOD"] : static::METHOD_GET;
+        
+        $contentType = explode($contentType, ";", 2)[0];
+        
+        $parameters[static::METHOD_GET] = $_GET;
+        
+        if ($contentType === "application/json") {
+            $json = file_get_contents("php://input");
+            
+            if ($json === false) {
+                $json = "";
+            }
+            
+            $json = json_decode($json, true);
+            
+            if (!is_array($json)) {
+                $json = [];
+            }
+            
+            $parameters[static::PARAMETERS_JSON] = $json;
+        } elseif ($method === static::METHOD_POST) {
+            $parameters[static::METHOD_POST] = $_POST;
+        } elseif ($method === static::METHOD_PUT || $method === static::METHOD_DELETE) {
+            $input = file_get_contents("php://input");
+            
+            if ($input === false) {
+                $input = "";
+            }
+            
+            parse_str($input, $parameters[$method]);
+        }
+        
+        return $parameters;
     }
     
     public function getCurrentFiles()
@@ -388,6 +463,12 @@ class Request implements \Crescendo\HTTP\Request
     
     public function getCurrentIsAjax()
     {
-        //
+        if (isset($_SERVER["HTTP_X_REQUESTED_WITH"])) {
+            $requestedWith = strtolower($_SERVER["HTTP_X_REQUESTED_WITH"]);
+            
+            return ($requestedWith === "xmlhttprequest");
+        } else {
+            return false;
+        }
     }
 }
